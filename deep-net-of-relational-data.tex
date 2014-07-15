@@ -1,0 +1,119 @@
+\documentclass{article}
+
+% Remove indentation before paragraphs and use vertical space to
+% separate paragraphs.
+\setlength{\parindent}{0cm}
+\setlength{\parskip}{3mm}
+
+\usepackage[top=1cm,bottom=1.5cm,left=1.5cm,right=1.5cm,paperwidth=5.5in,paperheight=8in]{geometry}
+\usepackage{graphicx}
+
+\begin{document}
+
+\title{Chain Up Latent Topic Models along Relational Data to Form Deep
+  Nets}
+\author{Yi Wang}
+\maketitle
+
+I argue in this article that we should make good use of relational
+data that is all over there and can be naturally chained up to be a
+directed acyclic graph (DAG).  And one approach to this goal is to
+build a deep nerual network by chaining up latent topic models along
+the DAG.
+
+To make this argument clear, let us start from the problem of
+predicting the growth of companies.
+
+This prediction can be done by training a prediction model, given we
+have labels and features of companies.  Labels can be derived from
+value evaluations or finance reports.  We are interested with
+features.
+
+Traditionally, features are designed manually.  A recent and promising
+idea is to learn features using deep neural networks.  Here I propose
+a novel way to building deep nets using relational data.
+
+\begin{figure}
+  \centering
+  \includegraphics[scale=0.6]{relational-data}
+  \caption{Relational Data}
+  \label{fig:relational-data}
+\end{figure}
+
+Consider that for each company, we have founders and a set of
+followers on LinkedIn.  For each follower, we know her favorite posts
+on LinkedIn.
+
+All these information are valualbe for the understanding of companies:
+Founders largely determine the vision of a company; followers got
+their reasons to follow companies, and favorite posts liked by followers
+reflect interests of followers.
+
+The relational data described in illustrated in
+Figure~\ref{fig:relational-data}, with each relation represented by a
+matrix.
+
+\begin{figure}[t]
+  \mbox{\hspace{-1cm}\includegraphics[scale=0.6]{decompose}}
+  \caption{Decomposition}
+  \label{fig:decompose}
+\end{figure}
+
+By learning a latent topic model from each matrix in
+Figure~\ref{fig:relational-data}, we decompose each matrix into two
+cooccurrence count matrices.  For example, the matrix C(company,t1)
+counts the number of times that a latent topic t1 is assigned to a
+company.  It is noticable that count matrices can be easily normalized
+to become probability matrices.  For example, C(company,t1) could be
+normalized per row to be P(company|t1), or per column to be
+P(t1|company).
+
+Also, as the learning algorithm is Gibbs sampling, it assigns each
+non-zero element in input matrices a latent topic, t1, t2 and t3
+respectively.  This allows us to count the coocurrences of t1 and t2,
+as well of t2 and t3.
+
+The decomposition is illustrated in Figure~\ref{fig:decompose}.
+
+Matrices C(company,t1) and C(company,t2) in
+Figure~\ref{fig:decompose}, as can be noralized to be P(t1|company)
+and P(t2|compnay), represent companies by t1 and t2.
+
+Also, using C(posts,t3) and C(t2,t3), we can represent companies by
+another kind of t2, denoted by t2$\leftarrow$t3 and derived from posts
+and t3:
+
+\begin{equation}
+  \label{eq:1}
+  P(t2\leftarrow t3 | company) = \sum_{t3} P(t2|t3) P(t3|posts, company)
+\end{equation}
+
+In this way, we learn three kinds of company features:
+\begin{enumerate}
+\item t1: derived from founders of companies,
+\item t2: derived from followers of companies, and
+\item t2$\leftarrow$t3: derived from posts about companies.
+\end{enumerate}
+
+Above computation process is illustrated in Figure~\ref{fig:features}.
+
+\begin{figure}
+  \centering
+  \includegraphics[scale=0.6]{features}
+  \caption{Company Features.}
+  \label{fig:features}
+\end{figure}
+
+It is straightforward to represent each matrix transformations in
+Figure~\ref{fig:features} by a layer of neural network.  This leads to
+a multi-layer deep neural network as shown in
+Figure~\ref{fig:deep-net}.
+
+\begin{figure}
+  \centering
+  \includegraphics[scale=0.6]{deep-net}
+  \caption{The Deep Neural Network.}
+  \label{fig:deep-net}
+\end{figure}
+
+\end{document}
