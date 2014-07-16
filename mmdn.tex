@@ -7,31 +7,29 @@
 
 \usepackage[top=1cm,bottom=1.5cm,left=1.5cm,right=1.5cm,paperwidth=5.5in,paperheight=8in]{geometry}
 \usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+
+\newcommand{\V}[1]{\mathbf{#1}}
 
 \begin{document}
 
-\title{Chain Up Latent Topic Models along Relational Data to Form Deep
-  Nets}
-\author{Yi Wang}
+\title{A DAG of Latent Topic Models for Multimodal Relational Data}
+\author{Yi Wang, Guan Wang, Ramanuja Simha}
 \maketitle
 
-I argue in this article that we should make good use of relational
-data that is all over there and can be naturally chained up to be a
-directed acyclic graph (DAG).  And one approach to this goal is to
-build a deep nerual network by chaining up latent topic models along
-the DAG.
+We argue in this article that we can make full use of multimodal
+relational data to address difficulties of high-dimensionality,
+sparsity and cold-start.  We propose to build a deep nerual network by
+chaining up latent topic/factor models, e.g., latent Dirichlet
+allocation or restricted Boltamann machine, learned from relational
+data.
 
-To make this argument clear, let us start from the problem of
-predicting the growth of companies.
-
-This prediction can be done by training a prediction model, given we
-have labels and features of companies.  Labels can be derived from
-value evaluations or finance reports.  We are interested with
-features.
-
-Traditionally, features are designed manually.  A recent and promising
-idea is to learn features using deep neural networks.  Here I propose
-a novel way to building deep nets using relational data.
+An example of three relational data, company--founder,
+company--follows and follows--post, is illustrated in
+Figure~\ref{fig:relational-data}.  Suppose that we want to predict
+companies' performance (measured by value evaluations or finance
+reports) using features derived from the data.
 
 \begin{figure}
   \centering
@@ -40,80 +38,57 @@ a novel way to building deep nets using relational data.
   \label{fig:relational-data}
 \end{figure}
 
-Consider that for each company, we have founders and a set of
-followers on LinkedIn.  For each follower, we know her favorite posts
-on LinkedIn.
+A straightforward approach is that for each company, use its founders
+and follows as features.  However, this is well-known of suffering
+from data sparseity.  Existing multimodal modeling techniques would
+decompose company--founder and company--follower matrices using latent
+topic models and use $t_1$ and $t_2$, latent topics learned from these
+matrices respectives, as features.  This solves the sparsity problem
+somehow, but still suffers from the difficulty of cold-start.
 
-All these information are valualbe for the understanding of companies:
-Founders largely determine the vision of a company; followers got
-their reasons to follow companies, and favorite posts liked by followers
-reflect interests of followers.
-
-The relational data described in illustrated in
-Figure~\ref{fig:relational-data}, with each relation represented by a
-matrix.
+Consider a cold-start problem that we want to predict the performance
+of a new company $c$, which is not in the training data illustrated in
+Figure~\ref{fig:relational-data}.  Suppose that the two founders,
+$f_1$ and $f_2$, of $c$ exist in our training data, so we can use them
+as features, or use them to derive latent topics in type $t_1$ as
+features.  However, suppose that the two followers, $l_1$ and $l_2$,
+of $c$ are not in the training data.  This means that there is no way
+to use them or latent topics of type $t_2$ as features.  However, we
+noticed that $l_1$ like posts $\V{o}_1$ and that $l_2$ like posts
+$\V{o}_2$.  Can we use this to address this cold-start problem?
 
 \begin{figure}[t]
-  \mbox{\hspace{-1cm}\includegraphics[scale=0.6]{decompose}}
+  \centering
+  \includegraphics[scale=0.5]{decompose}
   \caption{Decomposition}
   \label{fig:decompose}
 \end{figure}
 
-By learning a latent topic model from each matrix in
-Figure~\ref{fig:relational-data}, we decompose each matrix into two
-cooccurrence count matrices.  For example, the matrix C(company,t1)
-counts the number of times that a latent topic t1 is assigned to a
-company.  It is noticable that count matrices can be easily normalized
-to become probability matrices.  For example, C(company,t1) could be
-normalized per row to be P(company|t1), or per column to be
-P(t1|company).
+We think we can.  Our idea is to learn a latent topic model from each
+matrix in Figure~\ref{fig:relational-data}.  As illustrated in
+Figure~\ref{fig:decompose}, learning from the company-founder matrix
+produces count matrix $C(company,t_1)$, the number of times that a
+latent topic $t_1$ is assigned to a company, and $C(t_1,founder)$, the
+number of times that a founder founded a company for a reason (latent
+topic).  It is noticable that count matrices can be used with Bayesian
+inference to understand new data.  This can help us addressing the
+cold-start problem.
 
-Also, as the learning algorithm is Gibbs sampling, it assigns each
-non-zero element in input matrices a latent topic, t1, t2 and t3
-respectively.  This allows us to count the coocurrences of t1 and t2,
-as well of t2 and t3.
-
-The decomposition is illustrated in Figure~\ref{fig:decompose}.
-
-Matrices C(company,t1) and C(company,t2) in
-Figure~\ref{fig:decompose}, as can be noralized to be P(t1|company)
-and P(t2|compnay), represent companies by t1 and t2.
-
-Also, using C(posts,t3) and C(t2,t3), we can represent companies by
-another kind of t2, denoted by t2$\leftarrow$t3 and derived from posts
-and t3:
-
+Consider the aforementioned cold-start problem.  Given $C(t_3,post)$
+as illustrated in Figure~\ref{fig:decompose}, we can infer
+$P(t_3|\V{o}_1)$ and $P(t_3|\V{o}_2)$.  This allows us to find some
+followers who are in the training data, or some latent topics of type
+$t_2$, as features in our prediction.  Denote followers by $f$, we
+have
+%
 \begin{equation}
   \label{eq:1}
-  P(t2\leftarrow t3 | company) = \sum_{t3} P(t2|t3) P(t3|posts, company)
+  P(t_2|\V{o}_1,\V{o}_2) = \sum_f \sum_{t_3}  P(t_2|f) P(f|t_3) \left[ \sum_j P(t_3|\V{o}_j) \right]
 \end{equation}
 
-In this way, we learn three kinds of company features:
-\begin{enumerate}
-\item t1: derived from founders of companies,
-\item t2: derived from followers of companies, and
-\item t2$\leftarrow$t3: derived from posts about companies.
-\end{enumerate}
-
-Above computation process is illustrated in Figure~\ref{fig:features}.
-
-\begin{figure}
-  \centering
-  \includegraphics[scale=0.6]{features}
-  \caption{Company Features.}
-  \label{fig:features}
-\end{figure}
-
-It is straightforward to represent each matrix transformations in
-Figure~\ref{fig:features} by a layer of neural network.  This leads to
-a multi-layer deep neural network as shown in
-Figure~\ref{fig:deep-net}.
-
-\begin{figure}
-  \centering
-  \includegraphics[scale=0.6]{deep-net}
-  \caption{The Deep Neural Network.}
-  \label{fig:deep-net}
-\end{figure}
+Since summations like $\sum_{t_3}$ and $\sum_{f}$ can be intuitively
+interpreted as activations in neural networks, we can visualize above
+equation using a deep neural network, as illustrated in
+Figure~\ref{fig:dnn}.
 
 \end{document}
