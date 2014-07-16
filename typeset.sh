@@ -25,4 +25,4 @@ for i in ../*.graffle; do
     ./graffle.sh $i $(echo $i | sed 's/\.graffle$/.pdf/' | sed 's/\.\.\///');
 done
 
-pdflatex ../mmdn.tex && pdflatex ../mmdn.tex && open -a Skim mmdn.pdf
+pdflatex ../mmdn.tex && pdflatex ../mmdn.tex
